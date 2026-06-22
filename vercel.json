@@ -1,0 +1,19 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/license.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "api/license.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "public/dashboard.html"
+        }
+    ]
+}
