@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UCGG License Panel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { background: #0a0a1a; color: #fff; }
+.glass { background: rgba(17, 17, 40, 0.95); backdrop-filter: blur(10px); border: 1px solid #1a1a3e; }
+.gradient-text { background: linear-gradient(135deg, #00d4ff, #00ff88); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.status-active { background: #00ff8833; color: #00ff88; }
+.status-expired { background: #ff6b6b33; color: #ff6b6b; }
+.status-disabled { background: #ffaa0033; color: #ffaa00; }
+.key-text { color: #00d4ff; font-family: monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+<div class="flex justify-between items-center mb-8">
+<h1 class="text-3xl font-bold gradient-text">🔐 UCGG License Panel</h1>
+<div class="flex items-center gap-3">
+<span class="text-sm text-gray-400" id="adminStatus">✅ Admin</span>
+<button onclick="logout()" class="text-sm text-red-400 hover:text-red-300">Logout</button>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+<div class="glass rounded-xl p-6 border-l-4 border-blue-500">
+<div class="text-3xl font-bold" id="statTotal">0</div>
+<div class="text-gray-400 text-sm">Total Licenses</div>
+</div>
+<div class="glass rounded-xl p-6 border-l-4 border-green-500">
+<div class="text-3xl font-bold text-green-400" id="statActive">0</div>
+<div class="text-gray-400 text-sm">Active</div>
+</div>
+<div class="glass rounded-xl p-6 border-l-4 border-red-500">
+<div class="text-3xl font-bold text-red-400" id="statExpired">0</div>
+<div class="text-gray-400 text-sm">Expired</div>
+</div>
+<div class="glass rounded-xl p-6 border-l-4 border-yellow-500">
+<div class="text-3xl font-bold text-yellow-400" id="statDisabled">0</div>
+<div class="text-gray-400 text-sm">Disabled</div>
+</div>
+</div>
+<div class="glass rounded-xl p-6 mb-8">
+<h2 class="text-xl font-semibold mb-4">➕ Create License</h2>
+<div class="flex flex-wrap gap-3">
+<input type="number" id="daysInput" placeholder="Days" value="30" class="flex-1 min-w-[100px] bg-[#1a1a3e] border border-[#2a2a5e] rounded-lg px-4 py-2 text-white">
+<input type="number" id="devicesInput" placeholder="Max Devices" value="5" class="flex-1 min-w-[100px] bg-[#1a1a3e] border border-[#2a2a5e] rounded-lg px-4 py-2 text-white">
+<input type="text" id="ownerInput" placeholder="Owner" class="flex-1 min-w-[120px] bg-[#1a1a3e] border border-[#2a2a5e] rounded-lg px-4 py-2 text-white">
+<input type="text" id="notesInput" placeholder="Notes" class="flex-1 min-w-[120px] bg-[#1a1a3e] border border-[#2a2a5e] rounded-lg px-4 py-2 text-white">
+<button onclick="createLicense()" class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-2 rounded-lg font-semibold hover:opacity-90">Create</button>
+</div>
+</div>
+<div class="glass rounded-xl p-6">
+<h2 class="text-xl font-semibold mb-4">📋 License List</h2>
+<div class="overflow-x-auto">
+<table class="w-full">
+<thead>
+<tr class="text-gray-400 text-sm border-b border-[#1a1a3e]">
+<th class="text-left py-3 px-2">Key</th>
+<th class="text-left py-3 px-2">Status</th>
+<th class="text-left py-3 px-2">Owner</th>
+<th class="text-left py-3 px-2">Expires</th>
+<th class="text-left py-3 px-2">Devices</th>
+<th class="text-left py-3 px-2">Actions</th>
+</tr>
+</thead>
+<tbody id="licenseTableBody">
+<tr><td colspan="6" class="text-center py-4 text-gray-500">Loading...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<script>
+const ADMIN_KEY = prompt('Enter Admin Key:') || '';
+async function api(endpoint, options = {}) {
+const res = await fetch(endpoint, {
+...options,
+headers: {
+'X-Admin-Key': ADMIN_KEY,
+'Content-Type': 'application/json',
+...(options.headers || {})
+}
+});
+return res.json();
+}
+async function loadData() {
+await loadStats();
+await loadLicenses();
+}
+async function loadStats() {
+const data = await api('/api/stats');
+document.getElementById('statTotal').textContent = data.total || 0;
+document.getElementById('statActive').textContent = data.active || 0;
+document.getElementById('statExpired').textContent = data.expired || 0;
+document.getElementById('statDisabled').textContent = data.disabled || 0;
+}
+async function loadLicenses() {
+const data = await api('/api/licenses');
+const tbody = document.getElementById('licenseTableBody');
+if (!data.length) {
+tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No licenses found</td></tr>';
+return;
+}
+tbody.innerHTML = data.map(l => `
+<tr class="border-b border-[#1a1a3e]">
+<td class="py-3 px-2 key-text">${l.license_key}</td>
+<td class="py-3 px-2"><span class="px-3 py-1 rounded-full text-xs font-semibold status-${l.status}">${l.status}</span></td>
+<td class="py-3 px-2 text-gray-300">${l.owner || '-'}</td>
+<td class="py-3 px-2 text-gray-300">${l.expires_at ? new Date(l.expires_at).toLocaleDateString() : 'Never'}</td>
+<td class="py-3 px-2 text-gray-300">${l.used_devices || 0}/${l.max_devices || 5}</td>
+<td class="py-3 px-2">
+<div class="flex flex-wrap gap-2">
+${l.status === 'active' 
+? `<button onclick="toggleLicense('${l.license_key}','disabled')" class="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded text-xs hover:bg-yellow-500/30">Disable</button>`
+: `<button onclick="toggleLicense('${l.license_key}','active')" class="bg-green-500/20 text-green-400 px-3 py-1 rounded text-xs hover:bg-green-500/30">Enable</button>`
+}
+<button onclick="extendLicense('${l.license_key}')" class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded text-xs hover:bg-blue-500/30">+30d</button>
+<button onclick="deleteLicense('${l.license_key}')" class="bg-red-500/20 text-red-400 px-3 py-1 rounded text-xs hover:bg-red-500/30">Delete</button>
+</div>
+</td>
+</tr>
+`).join('');
+}
+async function createLicense() {
+const days = document.getElementById('daysInput').value || 30;
+const max_devices = document.getElementById('devicesInput').value || 5;
+const owner = document.getElementById('ownerInput').value || '';
+const notes = document.getElementById('notesInput').value || '';
+const data = await api('/api/licenses/create', {
+method: 'POST',
+body: JSON.stringify({ days: parseInt(days), max_devices: parseInt(max_devices), owner, notes })
+});
+if (data.success) {
+alert(`✅ License Created!\nKey: ${data.license_key}\nExpires: ${data.expires_at}`);
+loadData();
+}
+}
+async function toggleLicense(key, status) {
+if (!confirm(`Set ${key} to ${status}?`)) return;
+await api(`/api/licenses/toggle/${key}`, {
+method: 'POST',
+body: JSON.stringify({ status })
+});
+loadData();
+}
+async function extendLicense(key) {
+if (!confirm(`Add 30 days to ${key}?`)) return;
+const data = await api(`/api/licenses/extend/${key}`, {
+method: 'POST',
+body: JSON.stringify({ days: 30 })
+});
+if (data.success) {
+alert(`✅ Extended until: ${new Date(data.new_expires).toLocaleDateString()}`);
+loadData();
+}
+}
+async function deleteLicense(key) {
+if (!confirm(`Delete ${key} permanently?`)) return;
+await api(`/api/licenses/delete/${key}`, { method: 'DELETE' });
+loadData();
+}
+function logout() {
+localStorage.removeItem('adminKey');
+location.reload();
+}
+setInterval(loadData, 30000);
+loadData();
+</script>
+</body>
+</html>
