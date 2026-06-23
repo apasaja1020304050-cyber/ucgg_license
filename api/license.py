@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins='*')
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_KEY')
