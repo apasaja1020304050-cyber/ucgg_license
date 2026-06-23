@@ -12,8 +12,12 @@
             "dest": "api/license.py"
         },
         {
-            "src": "/(.+)",
-            "dest": "public/dashboard.html"
+            "src": "/",
+            "dest": "/public/dashboard.html"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/public/$1"
         }
     ]
 }
